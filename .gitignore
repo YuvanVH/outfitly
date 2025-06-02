@@ -1,0 +1,73 @@
+# iOS related
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Android related
+android/key.properties
+android/app/google-services.json
+
+# Firebase Emulator data (lokal testdata)
+firebase-debug.log
+**/firebase-debug.log
+.emulator/
+.firebase/
+firebase.json
+
+# VS Code settings (om du inte vill dela dina personliga inställningar)
+.vscode/
+
+# MacOS related
+macos/Runner/GoogleService-Info.plist
+
+# Web related
+web/firebase-messaging-sw.js
+
+# Env files (om du använder miljövariabler)
+.env
+.env.*

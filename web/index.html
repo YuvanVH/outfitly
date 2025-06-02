@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Outfitly</title>
+  <base href="/" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <script src="flutter_bootstrap.js" defer></script>
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #7206bf;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+
+    #splash-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .splash-logo {
+      width: 120px;
+      height: auto;
+    }
+
+    h1 {
+      color: white;
+      margin-top: 20px;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #4c65d4;
+      }
+    }
+  </style>
+  <!-- ✅ ADD THESE Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+  <!-- <script src="flutter_bootstrap.js" defer></script> -->
+
+  <script>
+    console.log('Web splash displayed');
+    function removeSplashFromWeb() {
+      document.getElementById("splash-screen")?.remove();
+      document.body.style.background = "transparent";
+      console.log('Web splash removed');
+    }
+    window.addEventListener('flutter-first-frame', () => {
+      setTimeout(removeSplashFromWeb, 1000);
+    });
+    // Fallback if flutter-first-frame fails
+    setTimeout(removeSplashFromWeb, 3000);
+  </script>
+</head>
+
+<body>
+  <div id="splash-screen">
+    <img src="assets/icons/hanger-load-animation.gif" alt="Loading..." class="splash-logo" />
+    <h1>Outfitly</h1>
+  </div>
+
+  <script src="main.dart.js" type="application/javascript" defer></script>
+</body>
+
+</html>
+<!--
+<body>
+  <script>
+    window.addEventListener('load', function () {
+      if (window._flutter && window._flutter.loader) {
+        window._flutter.loader.load({
+          onEntrypointLoaded: async function (engineInitializer) {
+            try {
+              const appRunner = await engineInitializer.initializeEngine();
+              await appRunner.runApp();
+            } catch (error) {
+              console.error('Flutter engine initialization failed:', error);
+            }
+          },
+        });
+      } else {
+        console.error('FlutterLoader not initialized. Check flutter.js and build configuration.');
+      }
+    });
+  </script>
+</body>
+
+</html> -->

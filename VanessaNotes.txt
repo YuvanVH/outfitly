@@ -1,0 +1,94 @@
+**NOTES**
+Examensplanering
+Vanessa Huynh FEU23
+Projektbeskrivning (Mobilapplikation):
+Mitt examensarbete fokuserar på att utveckla en mobilapplikation för garderobs- och
+stilhantering. Applikationen kommer att ge användare möjlighet att logga in, registrera plagg,
+organisera sin garderob och skapa outfits baserat på deras stilpreferenser och typ av kläder.
+Den kommer att erbjuda funktioner för att ta bilder på klädesplagg, spara detaljer som färg,
+mönster och taggar, samt filtrera och söka efter plagg baserat på kategori, färg eller årstid.
+Genom att tillhandahålla en visuellt tilltalande och funktionell lösning, kan användare få
+bättre kontroll över sin garderob.
+Målsättning:
+Målet med projektet är att skapa en användarvänlig app som hjälper användare att få bättre
+kontroll över sin garderob och skapa outfits baserat på deras stilpreferenser. Applikationen
+ska byggas med Flutter för att säkerställa plattformsoberoende och Firebase för
+användarautentisering och datalagring.
+Teknik och verktyg:
+● Språk: Dart
+● Ramverk: Flutter
+● Databaser: Firebase (För användardata och autentisering)
+● Bibliotek: KANSKE eller flutters egna. Go_router (och andra bibliotek som kan tillämpas under utveckling)
+● Verktyg: Figma (För design och prototyper)
+● Versionshantering: GitHub / Git
+Projektbeskrivning i examensarbetet:
+Projektet är en del av mitt examensarbete och kommer att beskriva utvecklingsprocessen för
+mobilapplikationen. Jag kommer att dokumentera allt från användargränssnitt och design till
+funktionalitet och databashantering. Examensarbetet kommer att fokusera på att skapa en
+MVP (Minimum Viable Product) av applikationen, inklusive funktioner som autentisering,
+plaggregistrering och garderobsorganisation.
+___
+
+### 🔍 Så här kan man tänka (min idé, omformulerad till Firestore-sättet):
+
+---
+
+## 🧑‍💼 1. Users (Collection: `users`)
+
+**Ett dokument per användare.**
+
+```json
+{
+  "userId": "auto_id eller auth_uid", // Klickar på "Auto-id" i firebase
+  "firstName": "Vanessa",
+  "lastName": "Lam",
+  "email": "vanessa@example.com",
+  "profileImage": "https://...",
+  // Inget lösenord om du använder Firebase Auth
+}
+
+```
+
+> ✅ Man behöver inte spara lösenord i databasen om du använder Firebase Authentication (det sköter Firebase säkert i sin backend!).
+>
+
+---
+
+## 👗 2. Wardrobe Items (Collection: `wardrobeItems`)
+
+**Varje plagg är ett dokument.**
+
+```json
+{
+  "userId": "uid_från_auth",
+  "category": "Jacket",
+  "color": "Black",
+  "textDescriptionTitle": "Min skinnjacka från Paris",
+  "imageUrl": "https://...",
+  "createdAt": Timestamp.now()
+}
+
+```
+
+> 🔁 Här kan man filtrera på userId för att bara visa användarens egna plagg.
+>
+
+---
+
+## 👚 3. Outfits (Collection: `outfits`)
+
+**Varje outfit är en "look" – som kan innehålla flera `wardrobeItem`-id:n**
+
+```json
+{
+  "userId": "uid_från_auth",
+  "title": "Jobbintervju Outfit",
+  "description": "Kavaj, skjorta, svarta byxor",
+  "itemIds": ["itemId1", "itemId2", "itemId3"], // referenser till wardrobeItems
+  "createdAt": Timestamp.now(),
+  "favorite": true
+}
+
+```
+
+---
