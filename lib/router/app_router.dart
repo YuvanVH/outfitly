@@ -60,6 +60,7 @@ final authStateListener = AuthStateListener();
 // Splash state management
 bool _isSplashing = false;
 int _splashCount = 0;
+DateTime? _lastRedirect;
 
 void resetSplashState({bool immediate = false}) {
   if (immediate) {
@@ -67,18 +68,17 @@ void resetSplashState({bool immediate = false}) {
     _splashCount = 0;
     debugPrint('Splash state reset immediately');
   } else {
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(milliseconds: 2500), () {
       _isSplashing = false;
       _splashCount = 0;
-      debugPrint('Splash state reset after delay');
+      debugPrint('Splash state reset after 2.5s delay');
     });
   }
 }
 
 final GoRouter appRouter = GoRouter(
   debugLogDiagnostics: true,
-  // initialLocation: '/',
-  initialLocation: '/splash', // test och såg split sekund draperierna
+  initialLocation: '/',
   refreshListenable: authStateListener,
   routes: [
     GoRoute(
@@ -134,6 +134,14 @@ final GoRouter appRouter = GoRouter(
   ],
   redirect: (context, state) {
     debugPrint('Redirect triggered: ${state.matchedLocation}');
+    final now = DateTime.now();
+    if (_lastRedirect != null &&
+        now.difference(_lastRedirect!).inMilliseconds < 3000) {
+      debugPrint('Redirect: Skipped, within 3s debounce');
+      return null;
+    }
+    _lastRedirect = now;
+
     final isLogout = state.uri.queryParameters['logout'] == 'true';
     if (isLogout && !_isSplashing) {
       debugPrint('Redirect: Allowing splash for logout');

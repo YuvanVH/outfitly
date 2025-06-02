@@ -256,5 +256,3 @@ class _MobileBottomNavState extends State<MobileBottomNav>
     );
   }
 }
-
-// Ingen cubit används här, endast StatefulWidget och setState för state management.

@@ -7,16 +7,28 @@ class WardrobeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String? _userId = FirebaseAuth.instance.currentUser?.uid;
 
-  // In wardrobe_service.dart
   Future<void> addWardrobeItem(WardrobeItem item) async {
-    await FirebaseFirestore.instance.collection('wardrobeItems').add({
-      'userId': FirebaseAuth.instance.currentUser!.uid,
-      'category': item.category,
-      'color': item.color,
-      'textDescriptionTitle': item.textDescriptionTitle,
-      'imageUrl': item.imageUrl,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      throw Exception('User not logged in');
+    }
+    try {
+      await _firestore.collection('wardrobeItems').add({
+        'userId': userId,
+        'category': item.category,
+        'color': item.color,
+        'textDescriptionTitle': item.textDescriptionTitle,
+        'imageUrl': item.imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+        'size': item.size,
+        'isFavorite': item.isFavorite,
+        'brand': item.brand,
+      });
+      debugPrint('Wardrobe item added');
+    } catch (e) {
+      debugPrint('Error adding wardrobe item: $e');
+      rethrow;
+    }
   }
 
   Future<List<WardrobeItem>> getWardrobeItems() async {
@@ -48,6 +60,21 @@ class WardrobeService {
       debugPrint('Wardrobe item deleted');
     } catch (e) {
       debugPrint('Error deleting wardrobe item: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> toggleFavorite(String itemId, bool isFavorite) async {
+    if (_userId == null) {
+      throw Exception('User not logged in');
+    }
+    try {
+      await _firestore.collection('wardrobeItems').doc(itemId).update({
+        'isFavorite': !isFavorite,
+      });
+      debugPrint('Favorite toggled for item: $itemId');
+    } catch (e) {
+      debugPrint('Error toggling favorite: $e');
       rethrow;
     }
   }

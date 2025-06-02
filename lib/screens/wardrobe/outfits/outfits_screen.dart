@@ -19,7 +19,12 @@ class OutfitsScreen extends StatelessWidget {
           children: [
             if (isDesktop) const DynamicDesktopTitle(),
             const SizedBox(height: 32),
-            const Center(child: Text('Outfits Screen')),
+            const Text(
+              'Your Outfits',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Center(child: Text('Outfits feature coming soon!')),
           ],
         ),
       ),

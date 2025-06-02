@@ -3,6 +3,7 @@ import 'package:image_picker_web/image_picker_web.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart'; // Added for go_router support
 import '../../services/wardrobe_service.dart';
 import '../../models/wardrobe_item.dart';
 import '../../constants/wardrobe_constants.dart';
@@ -24,9 +25,11 @@ class WardrobeScreenState extends State<WardrobeScreen> {
   late Future<List<WardrobeItem>> _wardrobeItems;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _imageUrlController = TextEditingController();
   String _selectedCategory = wardrobeCategories.first;
   String _selectedColor = wardrobeColors.first;
-  final _imageUrlController = TextEditingController();
+  String _selectedSize = wardrobeSizes.first;
+  String _selectedBrand = wardrobeBrands.first;
   File? _selectedImage;
   Uint8List? _webImageBytes;
 
@@ -46,10 +49,9 @@ class WardrobeScreenState extends State<WardrobeScreen> {
     if (kIsWeb) {
       if (_webImageBytes == null) return null;
       try {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('wardrobe_images')
-            .child('${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
         await storageRef.putData(_webImageBytes!);
         return await storageRef.getDownloadURL();
       } catch (e) {
@@ -59,10 +61,9 @@ class WardrobeScreenState extends State<WardrobeScreen> {
     } else {
       if (_selectedImage == null) return null;
       try {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('wardrobe_images')
-            .child('${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
         await storageRef.putFile(_selectedImage!);
         return await storageRef.getDownloadURL();
       } catch (e) {
@@ -88,9 +89,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
 
   Future<void> _pickImageForMobile() async {
     try {
-      // ignore: undefined_class
       final picker = ImagePicker();
-      // ignore: undefined_identifier
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null && mounted) {
         setState(() {
@@ -104,8 +103,8 @@ class WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Future<void> _showAddItemDialog() async {
-    if (!context.mounted) return; // Change from !mounted
-    showDialog(
+    if (!mounted) return;
+    await showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -121,7 +120,9 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                       decoration: const InputDecoration(labelText: 'Title'),
                       validator:
                           (value) =>
-                              value!.isEmpty ? 'Please enter a title' : null,
+                              value?.isEmpty ?? true
+                                  ? 'Please enter a title'
+                                  : null,
                     ),
                     DropdownButtonFormField<String>(
                       value: _selectedCategory,
@@ -135,7 +136,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                               )
                               .toList(),
                       onChanged: (value) {
-                        if (context.mounted) {
+                        if (mounted) {
                           setState(() {
                             _selectedCategory = value!;
                           });
@@ -155,13 +156,53 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                               )
                               .toList(),
                       onChanged: (value) {
-                        if (context.mounted) {
+                        if (mounted) {
                           setState(() {
                             _selectedColor = value!;
                           });
                         }
                       },
                       decoration: const InputDecoration(labelText: 'Color'),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: _selectedSize,
+                      items:
+                          wardrobeSizes
+                              .map(
+                                (size) => DropdownMenuItem(
+                                  value: size,
+                                  child: Text(size),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        if (mounted) {
+                          setState(() {
+                            _selectedSize = value!;
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(labelText: 'Size'),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: _selectedBrand,
+                      items:
+                          wardrobeBrands
+                              .map(
+                                (brand) => DropdownMenuItem(
+                                  value: brand,
+                                  child: Text(brand),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        if (mounted) {
+                          setState(() {
+                            _selectedBrand = value!;
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(labelText: 'Brand'),
                     ),
                     ElevatedButton(
                       onPressed: _pickImage,
@@ -189,9 +230,13 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  _addWardrobeItem();
-                  Navigator.pop(context);
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    await _addWardrobeItem();
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
                 },
                 child: const Text('Add'),
               ),
@@ -220,11 +265,14 @@ class WardrobeScreenState extends State<WardrobeScreen> {
         textDescriptionTitle: _titleController.text,
         imageUrl: imageUrl ?? 'https://via.placeholder.com/150',
         createdAt: DateTime.now(),
+        size: _selectedSize,
+        isFavorite: false,
+        brand: _selectedBrand,
       );
 
       try {
         await _wardrobeService.addWardrobeItem(newItem);
-        if (!mounted) return; // Kontrollera om State är monterad
+        if (!mounted) return;
         setState(() {
           _titleController.clear();
           _imageUrlController.clear();
@@ -233,12 +281,14 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           _fetchWardrobeItems();
         });
         if (mounted) {
+          // Added mounted check
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Item added successfully')),
           );
         }
       } catch (e) {
         if (mounted) {
+          // Added mounted check
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error adding item: $e')));
@@ -260,12 +310,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
 
     return Scaffold(
       appBar:
-          isDesktop
-              ? null
-              : AppBar(
-                title: const DynamicMobileAppBarTitle(),
-                // Ta bort actions: här, DynamicMobileAppBarTitle har redan logout/toggle
-              ),
+          isDesktop ? null : AppBar(title: const DynamicMobileAppBarTitle()),
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
@@ -273,6 +318,39 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           children: [
             if (isDesktop) const DynamicDesktopTitle(),
             const SizedBox(height: 32),
+            // Banner
+            const Text(
+              'What are you looking for?',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            // Buttons for Items and Outfits
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed:
+                      () => GoRouter.of(context).go('/wardrobe/items'), // Fixed
+                  icon: const Icon(Icons.checkroom),
+                  label: const Text('Items'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed:
+                      () =>
+                          GoRouter.of(context).go('/wardrobe/outfits'), // Fixed
+                  icon: const Icon(Icons.style),
+                  label: const Text('Outfits'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            // Favorites List (Horizontal)
+            const Text(
+              'Favorites',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
             Expanded(
               child: FutureBuilder<List<WardrobeItem>>(
                 future: _wardrobeItems,
@@ -285,35 +363,91 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                     return const Center(child: Text('No items in wardrobe.'));
                   } else {
                     final items = snapshot.data!;
-                    return ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return ItemCard(
-                          item: item,
-                          onDelete: () async {
-                            try {
-                              await _wardrobeService.deleteWardrobeItem(
-                                item.id,
+                    final favorites =
+                        items.where((item) => item.isFavorite).toList();
+                    final nonFavorites =
+                        items.where((item) => !item.isFavorite).toList();
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Horizontal Favorites List
+                          if (favorites.isNotEmpty)
+                            SizedBox(
+                              height: 150,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: favorites.length,
+                                itemBuilder: (context, index) {
+                                  final item = favorites[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: ItemCard(
+                                      item: item,
+                                      onDelete: () async {
+                                        await _wardrobeService
+                                            .deleteWardrobeItem(item.id);
+                                        setState(() {
+                                          _fetchWardrobeItems();
+                                        });
+                                      },
+                                      onToggleFavorite: () async {
+                                        await _wardrobeService.toggleFavorite(
+                                          item.id,
+                                          item.isFavorite,
+                                        );
+                                        setState(() {
+                                          _fetchWardrobeItems();
+                                        });
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            const Text('No favorites yet.'),
+                          const SizedBox(height: 16),
+                          // All Items List (Vertical)
+                          const Text(
+                            'All Items',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: nonFavorites.length,
+                            itemBuilder: (context, index) {
+                              final item = nonFavorites[index];
+                              return ItemCard(
+                                item: item,
+                                onDelete: () async {
+                                  await _wardrobeService.deleteWardrobeItem(
+                                    item.id,
+                                  );
+                                  setState(() {
+                                    _fetchWardrobeItems();
+                                  });
+                                },
+                                onToggleFavorite: () async {
+                                  await _wardrobeService.toggleFavorite(
+                                    item.id,
+                                    item.isFavorite,
+                                  );
+                                  setState(() {
+                                    _fetchWardrobeItems();
+                                  });
+                                },
                               );
-                              if (context.mounted) {
-                                // Guard with context.mounted
-                                _fetchWardrobeItems();
-                                setState(() {});
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                // Guard with context.mounted
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error deleting item: $e'),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        );
-                      },
+                            },
+                          ),
+                        ],
+                      ),
                     );
                   }
                 },

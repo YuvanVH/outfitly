@@ -1,12 +1,26 @@
 {
-  "indexes": [
+  "indexes": [],
+  "fieldOverrides": [],
+  "compositeIndexes": [
     {
       "collectionGroup": "wardrobeItems",
       "queryScope": "COLLECTION",
-      "fields": [
+      "indexes": [
         {
-          "fieldPath": "userId",
-          "order": "asc"
+          "fields": [
+            {
+              "fieldPath": "userId",
+              "order": "ASCENDING"
+            },
+            {
+              "fieldPath": "createdAt",
+              "order": "DESCENDING"
+            },
+            {
+              "fieldPath": "__name__",
+              "order": "DESCENDING"
+            }
+          ]
         }
       ]
     }

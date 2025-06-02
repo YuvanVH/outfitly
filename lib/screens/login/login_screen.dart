@@ -112,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Theme(
       data: ThemeData(
         scaffoldBackgroundColor: Colors.white,
+        canvasColor: Colors.white,
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),

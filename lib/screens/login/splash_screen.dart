@@ -22,6 +22,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    debugPrint('SplashScreen initialized');
 
     _showCurtains = true;
     _hasRedirected = false;
@@ -35,8 +36,8 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _curtainController, curve: Curves.easeInOut),
     );
 
-    // Start curtain animation efter kort delay
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // Start curtain animation after 500ms
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         _curtainController.forward();
       }
@@ -51,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    // Tvinga Splash att visas i minst 2.5 sekunder
+    // Force splash for 2.5 seconds
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (!mounted || _hasRedirected) return;
 
@@ -97,14 +98,17 @@ class _SplashScreenState extends State<SplashScreen>
     return Theme(
       data: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFFFFFFF),
-        primarySwatch: Colors.blue,
+        canvasColor: const Color(0xFFFFFFFF),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.blue,
+        ).copyWith(surface: const Color(0xFFFFFFFF)),
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF), // Force pure white
         body: Stack(
           children: [
-            // Background screen (hardcoded to match 23/5)
+            // Background screen (hardcoded to match 23/5/2024 design)
             const LoginScreen(),
 
             // Block interaction during animation
