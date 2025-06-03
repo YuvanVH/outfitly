@@ -13,6 +13,7 @@ import 'dart:io';
 import '../../widgets/nav_bars/dynamic_desktop_title.dart';
 import '../../widgets/nav_bars/dynamic_mobile_appbar_title.dart';
 import 'widgets/favorite_wardrobe_list.dart';
+import '../../utils/image_utils.dart';
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -50,11 +51,15 @@ class WardrobeScreenState extends State<WardrobeScreen> {
     if (kIsWeb) {
       if (_webImageBytes == null) return null;
       try {
+        // För web: försök gissa contentType från bytes (default till jpeg)
+        String contentType = 'image/jpeg';
+        // Om du har tillgång till filnamn/ext, kan du förbättra detta
         final storageRef = FirebaseStorage.instance.ref().child(
           'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
-        final metadata = SettableMetadata(contentType: 'image/jpeg');
-        await storageRef.putData(_webImageBytes!, metadata);
+        final metadata = SettableMetadata(contentType: contentType);
+        final compressedBytes = await compressImageBytes(_webImageBytes!);
+        await storageRef.putData(compressedBytes, metadata);
         final url = await storageRef.getDownloadURL();
         debugPrint('Uploaded image URL: $url');
         return url;
@@ -65,11 +70,18 @@ class WardrobeScreenState extends State<WardrobeScreen> {
     } else {
       if (_selectedImage == null) return null;
       try {
+        // För mobil: gissa contentType från filändelse
+        String contentType = 'image/jpeg';
+        final ext = _selectedImage!.path.toLowerCase();
+        if (ext.endsWith('.png')) {
+          contentType = 'image/png';
+        }
         final storageRef = FirebaseStorage.instance.ref().child(
-          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}${ext.endsWith('.png') ? '.png' : '.jpg'}',
         );
-        final metadata = SettableMetadata(contentType: 'image/jpeg');
-        await storageRef.putFile(_selectedImage!, metadata);
+        final metadata = SettableMetadata(contentType: contentType);
+        final compressedBytes = await compressImage(_selectedImage!);
+        await storageRef.putData(compressedBytes, metadata);
         final url = await storageRef.getDownloadURL();
         debugPrint('Uploaded image URL: $url');
         return url;
@@ -253,8 +265,10 @@ class WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Future<void> _addWardrobeItem() async {
+    debugPrint('Trying to add wardrobe item...');
     if (_formKey.currentState!.validate()) {
       final userId = FirebaseAuth.instance.currentUser?.uid;
+      debugPrint('Current userId: $userId');
       if (userId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -263,7 +277,13 @@ class WardrobeScreenState extends State<WardrobeScreen> {
         }
         return;
       }
-      String? imageUrl = await _uploadImage();
+      String? imageUrl;
+      try {
+        imageUrl = await _uploadImage();
+        debugPrint('Image uploaded, url: $imageUrl');
+      } catch (e) {
+        debugPrint('Image upload failed: $e');
+      }
       final newItem = WardrobeItem(
         id: '',
         userId: userId,
@@ -271,7 +291,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
         color: _selectedColor,
         textDescriptionTitle: _titleController.text,
         imageUrl:
-            imageUrl ?? 'https://via.placeholder.com/150', // Fixed fallback
+            imageUrl ?? 'web/assets/icons/default_item_image.png', // <--- här!
         createdAt: DateTime.now(),
         size: _selectedSize,
         isFavorite: false,
@@ -280,6 +300,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
 
       try {
         await _wardrobeService.addWardrobeItem(newItem);
+        debugPrint('Wardrobe item added to Firestore');
         if (!mounted) return;
         setState(() {
           _titleController.clear();
@@ -294,6 +315,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           );
         }
       } catch (e) {
+        debugPrint('Error adding item to Firestore: $e');
         if (mounted) {
           ScaffoldMessenger.of(
             context,

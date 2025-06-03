@@ -18,7 +18,8 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
-  bool _showCurtains = true;
+  bool _showCurtains = false;
+  final bool _showLoadingSplash = true;
 
   @override
   void initState() {
@@ -28,7 +29,6 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
     _curtainAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _curtainController, curve: Curves.easeInOut),
     );
@@ -39,26 +39,31 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_fadeController);
 
-    _curtainController.forward();
-    _fadeController.forward();
+    // Starta animationerna direkt när Flutter är igång
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _curtainController.forward();
+      _fadeController.forward();
+    });
 
+    // När draperiet är klart, tillåt interaktion och gör redirect efter 1s
     _curtainController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
+      if (status == AnimationStatus.completed && mounted) {
         setState(() {
           _showCurtains = false;
         });
-      }
-    });
-
-    // Vänta alltid minst 2.5 sekunder innan redirect
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (!mounted) return;
-      // Låt routerns redirect-logik avgöra vart vi ska
-      final user = authStateListener.currentUser;
-      if (user != null) {
-        context.go('/home');
-      } else {
-        context.go('/');
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (!mounted) return;
+          final uri = GoRouterState.of(context).uri;
+          final isLogout = uri.queryParameters['logout'] == 'true';
+          final user = authStateListener.currentUser;
+          if (isLogout) {
+            context.go('/');
+          } else if (user != null) {
+            context.go('/home');
+          } else {
+            context.go('/');
+          }
+        });
       }
     });
   }
@@ -78,14 +83,31 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // LoginScreen fade in bakom
-          FadeTransition(opacity: _fadeAnimation, child: const LoginScreen()),
+          // 1. Laddningssplash (logotyp + spinner)
+          if (_showLoadingSplash)
+            Container(
+              color: const Color(0xFF7206BF),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'web/assets/icons/hanger-load-animation.gif',
+                      width: 120,
+                      height: 120,
+                    ),
+                    const SizedBox(height: 24),
+                    const CircularProgressIndicator(color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
 
-          // Blockera interaktion medan animation pågår
-          if (_showCurtains)
-            const IgnorePointer(ignoring: true, child: SizedBox.expand()),
+          // 2. LoginScreen fade in bakom draperiet
+          if (!_showLoadingSplash)
+            FadeTransition(opacity: _fadeAnimation, child: const LoginScreen()),
 
-          // Draperi-animation ovanpå
+          // 3. Draperi-animation ovanpå
           if (_showCurtains)
             AnimatedBuilder(
               animation: _curtainAnimation,
@@ -118,11 +140,9 @@ class _SplashScreenState extends State<SplashScreen>
               },
             ),
 
-          // Laddningsindikator i mitten
-          if (_showCurtains)
-            const Center(
-              child: CircularProgressIndicator(color: Colors.black54),
-            ),
+          // 4. Blockera interaktion under splash/draperi
+          if (_showLoadingSplash || _showCurtains)
+            const IgnorePointer(ignoring: true, child: SizedBox.expand()),
         ],
       ),
     );

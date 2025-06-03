@@ -55,10 +55,16 @@ class EditItemDialogState extends State<EditItemDialog> {
         final bytes = await pickedFile.readAsBytes();
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
+          // Bestäm contentType utifrån filändelse
+          String contentType = 'image/jpeg';
+          final ext = pickedFile.name.toLowerCase();
+          if (ext.endsWith('.png')) {
+            contentType = 'image/png';
+          }
           final storageRef = FirebaseStorage.instance.ref().child(
-            'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+            'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}${ext.endsWith('.png') ? '.png' : '.jpg'}',
           );
-          final metadata = SettableMetadata(contentType: 'image/jpeg');
+          final metadata = SettableMetadata(contentType: contentType);
           await storageRef.putData(bytes, metadata);
           final url = await storageRef.getDownloadURL();
           setState(() {
@@ -110,7 +116,7 @@ class EditItemDialogState extends State<EditItemDialog> {
               ElevatedButton.icon(
                 onPressed: _pickImage,
                 icon: const Icon(Icons.image),
-                label: const Text('Byt bild'),
+                label: const Text('Change Image'),
               ),
             ],
             const SizedBox(height: 8),

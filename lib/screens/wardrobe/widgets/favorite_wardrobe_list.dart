@@ -78,7 +78,7 @@ class FavoriteWardrobeList extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
-                              item.imageUrl,
+                              item.imageUrl, // <--- här!
                               height: isMobile ? 50 : 80,
                               width: double.infinity,
                               fit: BoxFit.cover,
