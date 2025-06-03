@@ -16,51 +16,21 @@ bool _isInitialized = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  if (_isInitialized) {
-    debugPrint('Main already initialized, skipping');
-    runApp(const MyApp());
-    return;
-  }
-  _isInitialized = true;
-
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
   try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-
-      if (kDebugMode) {
-        FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-        FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
-        FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
-        debugPrint(
-          'Using Firebase Emulators: Auth(9099), Firestore(8080), Storage(9199)',
-        );
-      }
-    } else {
-      debugPrint('Firebase already initialized');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    if (kDebugMode) {
+      FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+      FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
+      debugPrint('Using Firebase Emulators: Auth(9099), Firestore(8080)');
     }
-
-    final db = FirebaseFirestore.instance;
-    debugPrint('Firestore instance created: $db');
-
-    final initialUser = FirebaseAuth.instance.currentUser;
-    debugPrint('Initial user: ${initialUser?.uid}');
-
-    // Wait for auth state or timeout after 3 seconds
-    await FirebaseAuth.instance
-        .authStateChanges()
-        .timeout(const Duration(seconds: 3))
-        .first;
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
     runApp(ErrorApp(error: 'Failed to initialize Firebase: $e'));
     return;
   }
-
   runApp(const MyApp());
 }
 

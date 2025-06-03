@@ -53,4 +53,30 @@ class WardrobeItem {
       brand: data['brand'] ?? 'Other',
     );
   }
+
+  WardrobeItem copyWith({
+    String? id,
+    String? userId,
+    String? category,
+    String? color,
+    String? textDescriptionTitle,
+    String? imageUrl,
+    DateTime? createdAt,
+    String? size,
+    bool? isFavorite,
+    String? brand,
+  }) {
+    return WardrobeItem(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      category: category ?? this.category,
+      color: color ?? this.color,
+      textDescriptionTitle: textDescriptionTitle ?? this.textDescriptionTitle,
+      imageUrl: imageUrl ?? this.imageUrl,
+      createdAt: createdAt ?? this.createdAt,
+      size: size ?? this.size,
+      isFavorite: isFavorite ?? this.isFavorite,
+      brand: brand ?? this.brand,
+    );
+  }
 }

@@ -1,7 +1,8 @@
 [
   {
     "origin": [
-      "*"
+      "http://localhost:58404",
+      "https://outfitly-app.web.app"
     ],
     "method": [
       "GET",

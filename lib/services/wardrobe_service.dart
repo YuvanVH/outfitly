@@ -78,4 +78,19 @@ class WardrobeService {
       rethrow;
     }
   }
+
+  Future<void> updateWardrobeItem(WardrobeItem item) async {
+    // Antag att du använder Firestore
+    await FirebaseFirestore.instance
+        .collection('wardrobeItems')
+        .doc(item.id)
+        .update({
+          'textDescriptionTitle': item.textDescriptionTitle,
+          'category': item.category,
+          'color': item.color,
+          'size': item.size,
+          'brand': item.brand,
+          // Lägg till fler fält om du vill
+        });
+  }
 }

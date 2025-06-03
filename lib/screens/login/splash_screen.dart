@@ -15,17 +15,14 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _curtainController;
   late Animation<double> _curtainAnimation;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   bool _showCurtains = true;
-  bool _hasRedirected = false;
 
   @override
   void initState() {
     super.initState();
-    debugPrint('SplashScreen initialized');
-
-    _showCurtains = true;
-    _hasRedirected = false;
 
     _curtainController = AnimationController(
       vsync: this,
@@ -36,40 +33,32 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _curtainController, curve: Curves.easeInOut),
     );
 
-    // Start curtain animation after 500ms
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _curtainController.forward();
-      }
-    });
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(_fadeController);
+
+    _curtainController.forward();
+    _fadeController.forward();
 
     _curtainController.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
+      if (status == AnimationStatus.completed) {
         setState(() {
           _showCurtains = false;
         });
-        debugPrint('SplashScreen: Curtains completed');
       }
     });
 
-    // Force splash for 2.5 seconds
+    // Vänta alltid minst 2.5 sekunder innan redirect
     Future.delayed(const Duration(milliseconds: 2500), () {
-      if (!mounted || _hasRedirected) return;
-
-      _hasRedirected = true;
-
+      if (!mounted) return;
+      // Låt routerns redirect-logik avgöra vart vi ska
       final user = authStateListener.currentUser;
-      final isLogout =
-          GoRouterState.of(context).uri.queryParameters['logout'] == 'true';
-
-      debugPrint(
-        'SplashScreen redirect: isLogout=$isLogout, loggedIn=${user != null}',
-      );
-
-      if (isLogout || user == null) {
-        GoRouter.of(context).go('/');
+      if (user != null) {
+        context.go('/home');
       } else {
-        GoRouter.of(context).go('/home');
+        context.go('/');
       }
     });
   }
@@ -77,9 +66,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _curtainController.dispose();
-    resetSplashState();
+    _fadeController.dispose();
     super.dispose();
-    debugPrint('SplashScreen disposed');
   }
 
   @override
@@ -87,79 +75,55 @@ class _SplashScreenState extends State<SplashScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    if (_hasRedirected) {
-      debugPrint('SplashScreen build: Skipped due to redirect');
-      return const Scaffold(body: SizedBox.shrink());
-    }
+    return Scaffold(
+      body: Stack(
+        children: [
+          // LoginScreen fade in bakom
+          FadeTransition(opacity: _fadeAnimation, child: const LoginScreen()),
 
-    debugPrint(
-      'SplashScreen build: Rendering with LoginScreen, theme=${Theme.of(context).scaffoldBackgroundColor}',
-    );
-    return Theme(
-      data: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
-        canvasColor: const Color(0xFFFFFFFF),
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.blue,
-        ).copyWith(surface: const Color(0xFFFFFFFF)),
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF), // Force pure white
-        body: Stack(
-          children: [
-            // Background screen (hardcoded to match 23/5/2024 design)
-            const LoginScreen(),
+          // Blockera interaktion medan animation pågår
+          if (_showCurtains)
+            const IgnorePointer(ignoring: true, child: SizedBox.expand()),
 
-            // Block interaction during animation
-            if (_showCurtains) const IgnorePointer(child: SizedBox.expand()),
-
-            // Curtain animation
-            if (_showCurtains)
-              AnimatedBuilder(
-                animation: _curtainAnimation,
-                builder: (context, child) {
-                  final offset = screenWidth * _curtainAnimation.value;
-                  return Stack(
-                    children: [
-                      Positioned(
-                        left: -offset,
-                        child: Opacity(
-                          opacity: 1.0, // Opaque curtains
-                          child: CustomPaint(
-                            painter: CurtainPainter(),
-                            child: SizedBox(
-                              width: screenWidth / 2,
-                              height: screenHeight,
-                            ),
-                          ),
+          // Draperi-animation ovanpå
+          if (_showCurtains)
+            AnimatedBuilder(
+              animation: _curtainAnimation,
+              builder: (context, child) {
+                final offset = screenWidth / 2 * _curtainAnimation.value;
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: -offset,
+                      child: CustomPaint(
+                        painter: CurtainPainter(),
+                        child: SizedBox(
+                          width: screenWidth / 2,
+                          height: screenHeight,
                         ),
                       ),
-                      Positioned(
-                        right: -offset,
-                        child: Opacity(
-                          opacity: 1.0, // Opaque curtains
-                          child: CustomPaint(
-                            painter: CurtainPainter(),
-                            child: SizedBox(
-                              width: screenWidth / 2,
-                              height: screenHeight,
-                            ),
-                          ),
+                    ),
+                    Positioned(
+                      right: -offset,
+                      child: CustomPaint(
+                        painter: CurtainPainter(),
+                        child: SizedBox(
+                          width: screenWidth / 2,
+                          height: screenHeight,
                         ),
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
+            ),
 
-            // Loading indicator
-            if (_showCurtains)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.black54),
-              ),
-          ],
-        ),
+          // Laddningsindikator i mitten
+          if (_showCurtains)
+            const Center(
+              child: CircularProgressIndicator(color: Colors.black54),
+            ),
+        ],
       ),
     );
   }
@@ -188,21 +152,21 @@ class CurtainPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2;
 
-    // Rod
+    // Stång
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, 10), rodPaint);
 
-    // Loops
+    // Öglor
     for (int i = 0; i < 5; i++) {
       double x = (i + 1) * size.width / 6;
       canvas.drawCircle(Offset(x, 5), 5, loopPaint);
       canvas.drawLine(Offset(x, 5), Offset(x, 15), loopPaint);
     }
 
-    // Curtain fabric
+    // Draperi
     final path = Path();
     path.moveTo(0, 15);
     for (double i = 0; i <= size.width; i++) {
-      path.lineTo(i, 15 + sin(i * 0.1) * 5); // Fold effect
+      path.lineTo(i, 15 + sin(i * 0.1) * 5); // Veck-effekt
     }
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
