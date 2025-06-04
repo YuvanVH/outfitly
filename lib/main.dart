@@ -4,24 +4,29 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'router/app_router.dart';
 import 'themes/light_mode.dart';
 import 'themes/dark_mode.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 
-void main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    if (kDebugMode) {
+    // Kontrollera om --use-emulators finns som argument
+    bool useEmulators = args.contains('--use-emulators');
+    if (useEmulators) {
       FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
       FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
-      debugPrint('Using Firebase Emulators: Auth(9099), Firestore(8080)');
+      FirebaseStorage.instance.useStorageEmulator('127.0.0.1', 9199);
+      debugPrint(
+        'Using Firebase Emulators: Auth(9099), Firestore(8080), Storage(9199)',
+      );
     }
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');

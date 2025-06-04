@@ -42,64 +42,26 @@ class WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _fetchWardrobeItems() {
-    _wardrobeItems = _wardrobeService.getWardrobeItems();
-  }
-
-  Future<String?> _uploadImage() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    if (kIsWeb) {
-      if (_webImageBytes == null) return null;
-      try {
-        // För web: försök gissa contentType från bytes (default till jpeg)
-        String contentType = 'image/jpeg';
-        // Om du har tillgång till filnamn/ext, kan du förbättra detta
-        final storageRef = FirebaseStorage.instance.ref().child(
-          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
-        );
-        final metadata = SettableMetadata(contentType: contentType);
-        final compressedBytes = await compressImageBytes(_webImageBytes!);
-        await storageRef.putData(compressedBytes, metadata);
-        final url = await storageRef.getDownloadURL();
-        debugPrint('Uploaded image URL: $url');
-        return url;
-      } catch (e) {
-        debugPrint('Error uploading image: $e');
-        rethrow;
-      }
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      _wardrobeItems = Future.value([]); // Tom lista om ej inloggad
     } else {
-      if (_selectedImage == null) return null;
-      try {
-        // För mobil: gissa contentType från filändelse
-        String contentType = 'image/jpeg';
-        final ext = _selectedImage!.path.toLowerCase();
-        if (ext.endsWith('.png')) {
-          contentType = 'image/png';
-        }
-        final storageRef = FirebaseStorage.instance.ref().child(
-          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}${ext.endsWith('.png') ? '.png' : '.jpg'}',
-        );
-        final metadata = SettableMetadata(contentType: contentType);
-        final compressedBytes = await compressImage(_selectedImage!);
-        await storageRef.putData(compressedBytes, metadata);
-        final url = await storageRef.getDownloadURL();
-        debugPrint('Uploaded image URL: $url');
-        return url;
-      } catch (e) {
-        debugPrint('Error uploading image: $e');
-        rethrow;
-      }
+      _wardrobeItems = _wardrobeService.getWardrobeItems();
     }
   }
 
   Future<void> _pickImage() async {
     if (kIsWeb) {
+      debugPrint('Picking image for web...');
       final Uint8List? pickedFile = await ImagePickerWeb.getImageAsBytes();
       if (pickedFile != null && mounted) {
+        debugPrint('Image picked successfully, bytes length: ${pickedFile.length}');
         setState(() {
           _selectedImage = null;
           _webImageBytes = pickedFile;
         });
+      } else {
+        debugPrint('No image picked or widget not mounted');
       }
     } else {
       await _pickImageForMobile();
@@ -118,6 +80,63 @@ class WardrobeScreenState extends State<WardrobeScreen> {
       }
     } catch (e) {
       debugPrint('Error picking image on mobile: $e');
+    }
+  }
+
+  Future<String?> _uploadImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      debugPrint('User not logged in, cannot upload image');
+      return null;
+    }
+    if (kIsWeb) {
+      if (_webImageBytes == null) {
+        debugPrint('No image bytes to upload');
+        return null;
+      }
+      try {
+        debugPrint('Uploading image for web...');
+        String contentType = 'image/jpeg';
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        final metadata = SettableMetadata(contentType: contentType);
+        final compressedBytes = await compressImageBytes(_webImageBytes!);
+        debugPrint('Compressed image, bytes length: ${compressedBytes.length}');
+        await storageRef.putData(compressedBytes, metadata);
+        final url = await storageRef.getDownloadURL();
+        debugPrint('Uploaded image URL: $url');
+        return url;
+      } catch (e) {
+        debugPrint('Error uploading image: $e');
+        rethrow;
+      }
+    } else {
+      if (_selectedImage == null) {
+        debugPrint('No image file selected for mobile');
+        return null;
+      }
+      try {
+        debugPrint('Uploading image for mobile...');
+        String contentType = 'image/jpeg';
+        final ext = _selectedImage!.path.toLowerCase();
+        if (ext.endsWith('.png')) {
+          contentType = 'image/png';
+        }
+        final storageRef = FirebaseStorage.instance.ref().child(
+          'wardrobe_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}${ext.endsWith('.png') ? '.png' : '.jpg'}',
+        );
+        final metadata = SettableMetadata(contentType: contentType);
+        final compressedBytes = await compressImage(_selectedImage!);
+        debugPrint('Compressed image, bytes length: ${compressedBytes.length}');
+        await storageRef.putData(compressedBytes, metadata);
+        final url = await storageRef.getDownloadURL();
+        debugPrint('Uploaded image URL: $url');
+        return url;
+      } catch (e) {
+        debugPrint('Error uploading image (mobile): $e');
+        rethrow;
+      }
     }
   }
 
@@ -290,8 +309,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
         category: _selectedCategory,
         color: _selectedColor,
         textDescriptionTitle: _titleController.text,
-        imageUrl:
-            imageUrl ?? 'web/assets/icons/default_item_image.png', // <--- här!
+        imageUrl: imageUrl ?? 'web/assets/icons/default_item_image.png',
         createdAt: DateTime.now(),
         size: _selectedSize,
         isFavorite: false,
@@ -335,6 +353,44 @@ class WardrobeScreenState extends State<WardrobeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        appBar:
+            isDesktop ? null : AppBar(title: const DynamicMobileAppBarTitle()),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Please log in to view your wardrobe',
+                style: TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  GoRouter.of(context).go('/login');
+                },
+                child: const Text('Log In'),
+              ),
+              // TEMP: Test ImagePickerWeb i release mode
+              if (kIsWeb)
+                Padding(
+                  padding: const EdgeInsets.only(top: 32),
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final Uint8List? bytes = await ImagePickerWeb.getImageAsBytes();
+                      debugPrint('Image bytes: ${bytes?.length}');
+                    },
+                    child: const Text('Test Image Picker'),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar:

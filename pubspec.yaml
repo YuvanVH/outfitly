@@ -15,11 +15,12 @@ dependencies:
   firebase_auth: ^5.5.3
   cloud_firestore: ^5.6.7
   firebase_storage: ^12.4.5
-  image_picker: ^1.1.2  # Compatible with image_picker_web ^4.0.0
-  image_picker_web: ^4.0.0  # Updated to the latest version
+  image_picker: ^1.1.2
+  image_picker_web: ^4.0.0
   cached_network_image: ^3.3.1
   firebase_app_check: ^0.3.0
   shared_preferences: ^2.2.3
+  flutter_image_compress: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -30,6 +31,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - web/assets/icons/hanger-load-animation.gif
     - web/assets/icons/
     - web/assets/icons/default_avatar.png
 

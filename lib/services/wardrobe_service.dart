@@ -1,14 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/wardrobe_item.dart';
 
 class WardrobeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String? _userId = FirebaseAuth.instance.currentUser?.uid;
+
+  String? get _userId => FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> addWardrobeItem(WardrobeItem item) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = _userId;
     if (userId == null) {
       throw Exception('User not logged in');
     }
@@ -32,14 +33,15 @@ class WardrobeService {
   }
 
   Future<List<WardrobeItem>> getWardrobeItems() async {
-    if (_userId == null) {
-      throw Exception('User not logged in');
+    final userId = _userId;
+    if (userId == null) {
+      return [];
     }
     try {
       final querySnapshot =
           await _firestore
               .collection('wardrobeItems')
-              .where('userId', isEqualTo: _userId)
+              .where('userId', isEqualTo: userId)
               .orderBy('createdAt', descending: true)
               .get();
       return querySnapshot.docs.map((doc) {
@@ -52,7 +54,8 @@ class WardrobeService {
   }
 
   Future<void> deleteWardrobeItem(String itemId) async {
-    if (_userId == null) {
+    final userId = _userId;
+    if (userId == null) {
       throw Exception('User not logged in');
     }
     try {
@@ -65,7 +68,8 @@ class WardrobeService {
   }
 
   Future<void> toggleFavorite(String itemId, bool isFavorite) async {
-    if (_userId == null) {
+    final userId = _userId;
+    if (userId == null) {
       throw Exception('User not logged in');
     }
     try {
@@ -80,17 +84,22 @@ class WardrobeService {
   }
 
   Future<void> updateWardrobeItem(WardrobeItem item) async {
-    // Antag att du använder Firestore
-    await FirebaseFirestore.instance
-        .collection('wardrobeItems')
-        .doc(item.id)
-        .update({
-          'textDescriptionTitle': item.textDescriptionTitle,
-          'category': item.category,
-          'color': item.color,
-          'size': item.size,
-          'brand': item.brand,
-          // Lägg till fler fält om du vill
-        });
+    final userId = _userId;
+    if (userId == null) {
+      throw Exception('User not logged in');
+    }
+    try {
+      await _firestore.collection('wardrobeItems').doc(item.id).update({
+        'textDescriptionTitle': item.textDescriptionTitle,
+        'category': item.category,
+        'color': item.color,
+        'size': item.size,
+        'brand': item.brand,
+        'imageUrl': item.imageUrl,
+      });
+    } catch (e) {
+      debugPrint('Error updating wardrobe item: $e');
+      rethrow;
+    }
   }
 }

@@ -56,6 +56,55 @@ lib/
 - Om du får "Firebase initialization failed" – kontrollera att du inte använder emulatorer i production och att `firebase_options.dart` är korrekt.
 - För bildvisning på web, använd aldrig Storage-emulatorn.
 
----
+Tips:
+Om du får `zsh: command not found: gsutil` betyder det att Google Cloud SDK (och gsutil) inte är installerat eller inte finns i din PATH.
 
-> Denna README är endast för snabb översikt och kan raderas när du vill.
+**Så här installerar du gsutil:**
+
+1. Installera Google Cloud SDK:
+   https://cloud.google.com/sdk/docs/install
+
+2. Efter installation, kör:
+   ```sh
+   gcloud auth login
+   gcloud config set project outfitly-app
+   ```
+
+3. Nu kan du använda:
+   ```sh
+   gsutil cors set cors.json gs://outfitly-app.firebasestorage.app
+   ```
+
+För att öppna build/web/index.html i webbläsaren:
+
+1. Bygg projektet för web:
+   ```sh
+   flutter build web
+   ```
+
+2. Öppna filen i webbläsaren:
+   - Gå till mappen: `/Users/vanessa/Desktop/LIA_Examensarbete_PM/Examensarbete/outfitly/build/web/`
+   - Dubbelklicka på `index.html`
+     **eller**
+     öppna terminalen och kör:
+   ```sh
+   open build/web/index.html
+   ```
+   (På Windows: `start build/web/index.html`)
+
+**Obs:**
+Vissa funktioner (t.ex. Firebase Auth) fungerar inte fullt ut om du bara öppnar filen direkt (file://).
+
+**Enklare sätt:**
+Kör istället:
+```sh
+flutter run -d chrome --release
+```
+Då startar Flutter en lokal server och öppnar appen i webbläsaren – ingen extra Python-server behövs!
+
+För manuella tester av build-mappen kan du fortfarande använda:
+```sh
+cd build/web
+python3 -m http.server 8080
+```
+och besök `http://localhost:8080` i webbläsaren.
